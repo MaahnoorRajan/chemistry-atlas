@@ -1,0 +1,1 @@
+ALTER TABLE assignments ADD COLUMN quiz_open INTEGER NOT NULL DEFAULT 1;

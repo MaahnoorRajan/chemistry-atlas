@@ -1,0 +1,1 @@
+ALTER TABLE assignments ADD COLUMN video_id TEXT NOT NULL DEFAULT 'jNfgGh-aL2g';

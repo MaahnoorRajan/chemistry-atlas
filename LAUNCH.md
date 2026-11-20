@@ -29,6 +29,8 @@ In Authentication → URL Configuration, set the final site origin and add the e
 
 ## Vercel environment
 
+The Vercel project is `maahnoorrajan12-9546/chemistry-atlas`, on the Hobby plan, connected to the private GitHub repository. Its database connection uses the transaction pooler and the dedicated `atlas_vercel` role. A live connection check verified application-table access; this role cannot read `auth.users` and has no superuser, role-creation, database-creation, or RLS-bypass privileges. Existing legacy sample records (one assignment and two submissions) were copied to PostgreSQL.
+
 - `DATABASE_URL` — Supabase transaction pooler connection URI, stored as a Vercel secret.
 - `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` — existing project values.
 - `SITE_AUTH_ORIGIN` — final HTTPS Vercel or custom-domain origin.

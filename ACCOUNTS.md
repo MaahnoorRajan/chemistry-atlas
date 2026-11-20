@@ -1,12 +1,14 @@
 # Chemistry Atlas accounts
 
-The Worker uses Supabase Auth for email and password, and D1 for classroom records. Configure the existing Supabase project with Email sign-in, email confirmation, and a working custom SMTP sender before inviting external users. In Supabase Auth URL Configuration, set the Site URL to the site origin and add its exact `/account/callback` URL. Keep link tracking disabled for auth emails. Open each confirmation or recovery link in the same browser that requested it.
+The production application uses Google sign-in through Supabase Auth and PostgreSQL for classroom records. `AUTH_MODE=google` disables email/password signup and recovery in the current application. No custom SMTP provider is required. The server uses PKCE, exchanges the callback code, and manages secure, HttpOnly session cookies. Google credentials belong in Supabase's provider settings.
 
-Workers need `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `SITE_AUTH_ORIGIN`. The existing `DEMO_SESSION_KEY` Worker secret signs account-bound video receipts. Keep it server-side. The accounts deployment requires D1 migration `0003_account_ownership`.
+The production runtime needs `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `DATABASE_URL`, and a server-side `DEMO_SESSION_KEY`. Configure the canonical `SITE_AUTH_ORIGIN` when applicable and allowlist its exact `/account/callback` URL in Supabase. The local server uses `.local/atlas.sqlite`, while the earlier Sites runtime uses D1. See [LAUNCH.md](LAUNCH.md) for deployment details.
 
 ## Approving a teacher
 
-Review the request and verify the teacher independently. The teacher must first register and verify their email. A trusted Supabase project administrator can then run this in SQL Editor, replacing the placeholder with the account UUID from **Authentication → Users**:
+Selecting Teacher requests access; it never grants teacher privileges automatically. Once the verified site owner has been bootstrapped as an administrator using [LAUNCH.md](LAUNCH.md), they can review requests under Account → Teacher approvals. The protected `teacher-approval` Edge Function validates the administrator and applicant before updating trusted account metadata. User-editable metadata never grants privileges.
+
+Review each request and verify the teacher independently. If an administrator must perform a manual fallback, a trusted Supabase project administrator can run the following with the verified teacher's UUID from **Authentication → Users**:
 
 ```sql
 update auth.users
@@ -20,3 +22,7 @@ returning id;
 The teacher signs in via the Teacher option. To revoke teacher privileges, remove the `chemistry_atlas_role` key for that specific user. The Worker checks the current account metadata before granting teacher access.
 
 The ownership migration retains earlier demo classroom rows. Those rows have no verified owner and are excluded from account-based access.
+
+## Visitor demos
+
+Teacher Demo and Student Demo require no credentials. Signed, HttpOnly cookies identify each visitor's isolated workspace. Demo records use separate tables, and sessions expire after three hours. Switching demo roles preserves the sample workspace. Exiting the demo restores an underlying real account when one exists.

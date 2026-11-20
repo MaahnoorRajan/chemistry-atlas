@@ -6,6 +6,17 @@
 
 A multilingual chemistry learning platform for teachers and students in Kyrgyzstan. Video lessons, experiment guides, observation notebooks, and teacher-assigned quizzes come together in one classroom workflow.
 
+| Project overview | Details |
+| --- | --- |
+| **Creator** | [Maahnoor Rajan](https://github.com/MaahnoorRajan) |
+| **Purpose** | Make chemistry lessons easier to explore, teach, and review |
+| **Audience** | Teachers, students, and portfolio reviewers |
+| **Languages** | Kyrgyz · Russian · English |
+| **Learning library** | 18 video lessons · 9 topics · 5 quiz questions per lesson |
+| **Live website** | [chemistry-atlas-delta.vercel.app](https://chemistry-atlas-delta.vercel.app/?lang=en) |
+| **Try it** | Sign in → Teacher Demo or Student Demo; no account needed |
+| **Status** | Deployed portfolio project; educator content review remains |
+
 [**Open the live website**](https://chemistry-atlas-delta.vercel.app/?lang=en) · [Account guide](ACCOUNTS.md) · [Deployment](LAUNCH.md) · [Security](SECURITY.md)
 
 ![Node.js](https://img.shields.io/badge/Node.js-24-43853d?logo=nodedotjs&logoColor=white)
@@ -15,9 +26,12 @@ A multilingual chemistry learning platform for teachers and students in Kyrgyzst
 
 ## Explore without an account
 
-1. Open the [live website](https://chemistry-atlas-delta.vercel.app/?lang=en) and select **Sign in**.
-2. Choose **Teacher Demo** to explore a sample classroom, assignments, rosters, and results.
-3. Switch to **Student Demo** to open an assigned lesson and save observations below the video.
+Open the [live website](https://chemistry-atlas-delta.vercel.app/?lang=en), select **Sign in**, and choose a demo:
+
+| Demo | What to explore |
+| --- | --- |
+| **Teacher Demo** | Sample classroom, assignments, student rosters, quiz results, and feedback |
+| **Student Demo** | Assigned videos, lesson guides, observation notebooks, and quiz access |
 
 Each visitor receives an isolated sample workspace. Demo sessions expire after three hours and cannot access real classroom records. Google sign-in supports personal accounts; teacher privileges require approval.
 
@@ -55,6 +69,16 @@ Quizzes require teacher release and video completion. The server checks trusted 
 - **Browser-native frontend:** HTML, CSS, and JavaScript, with a custom asset build and versioned frontend references.
 
 ## Architecture
+
+| Layer | Technology | Responsibility |
+| --- | --- | --- |
+| Frontend | HTML · CSS · JavaScript | Responsive lessons, search, dashboards, and chemistry visuals |
+| Server | Node.js 24 · Vercel Functions | Request handling, authorization, and classroom workflows |
+| Identity | Supabase Auth · Google OAuth · PKCE | Google sign-in and secure session management |
+| Data | Supabase PostgreSQL | Classes, assignments, submissions, notebooks, and feedback |
+| Local development | Node.js · SQLite | Persistent local classroom data and migration setup |
+| Privileged operations | Supabase Edge Function | Administrator-approved teacher access |
+| Delivery | GitHub → Vercel | Automatic deployment from the main branch |
 
 ```mermaid
 flowchart TD

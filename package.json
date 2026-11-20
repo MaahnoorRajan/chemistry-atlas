@@ -1,0 +1,16 @@
+{
+  "name": "chemistry-atlas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node worker/build.mjs",
+    "check": "node --check api/index.js"
+  },
+  "dependencies": {
+    "postgres": "4.1.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

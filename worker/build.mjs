@@ -7,24 +7,38 @@ assets['/atom-logo.png'] = {
   type: 'image/png',
   base64: (await readFile(new URL('../dist/atom-logo.png', import.meta.url))).toString('base64')
 };
-for (const name of ['style.css', 'content.js', 'lesson-details.js', 'auth.js', 'classroom.js', 'atlas.js', 'app.js']) {
+for (const name of ['style.css', 'content.js', 'lab-sheets.js', 'lesson-details.js', 'auth.js', 'classroom.js', 'atlas.js', 'dashboard.js', 'learning.js', 'app.js']) {
   assets['/' + name] = {
     type: name.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8',
     body: await read('../dist/' + name)
   };
 }
 const page = await read('../dist/index.html');
+const durations = JSON.parse(await read('./video-durations.json'));
 const quizCatalog = runInNewContext(
-  ['/content.js','/lesson-details.js','/atlas.js'].map(path => assets[path].body).join('\n') + `
+  ['/content.js','/lab-sheets.js','/lesson-details.js','/atlas.js'].map(path => assets[path].body).join('\n') + `
   Object.fromEntries(atlasVideos.map(({id}) => {
     const keys = questionsFor(id,'en').map(question => question[2]);
-    if (!keys.length || ['ky','ru'].some(lang => JSON.stringify(questionsFor(id,lang).map(question=>question[2])) !== JSON.stringify(keys))) {
+    if (keys.length !== 5 || ['ky','ru','en'].some(lang => {
+      const sheet = labSheets[id]?.[lang];
+      const questions = questionsFor(id,lang);
+      return !sheet?.slice(0,4).every(value => value && value.trim()) ||
+        sheet[2].split(' | ').length < 2 || !sheet[3].trim() ||
+        questions.some(([title,options]) => !title || options.length !== 3 || options.some(option=>!option)) ||
+        JSON.stringify(questions.map(question=>question[2])) !== JSON.stringify(keys);
+    })) {
       throw new Error('Missing or inconsistent quiz for ' + id);
     }
-    return [id, { keys }];
+    const sheet = labSheets[id].en;
+    const readingKeys = sheet[3].split(' | ').flatMap((_,row)=>sheet[2].split(' | ').slice(1).map((_,col)=>row+'-'+col));
+    return [id, { keys, readingKeys }];
   }));`
 );
-const worker = (await read('./classroom.mjs')) + (await read('./index.mjs'));
+for (const [id,quiz] of Object.entries(quizCatalog)) {
+  if (!Number.isInteger(durations[id])||durations[id]<1) throw new Error('Missing trusted video duration '+id);
+  quiz.duration=durations[id];
+}
+const worker = (await read('./accounts.mjs')) + (await read('./learning.mjs')) + (await read('./classroom.mjs')) + (await read('./demo.mjs')) + (await read('./index.mjs'));
 await mkdir(new URL('../dist/server/', import.meta.url), { recursive: true });
 await mkdir(new URL('../dist/.openai/', import.meta.url), { recursive: true });
 await writeFile(new URL('../dist/server/index.js', import.meta.url),

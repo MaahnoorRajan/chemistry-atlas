@@ -195,14 +195,16 @@ Object.assign(lessonDetails, {
 });
 
 function questionsFor(videoId, lang) {
-  if (videoId === legacyQuizVideo) return copy[lang].questions;
-  const locale = lessonDetails[videoId]?.[lang];
-  if (!locale) return [];
+  const sheet = labSheets[videoId]?.[lang];
+  if (!sheet) return [];
+  const legacy = videoId === legacyQuizVideo;
+  const original = legacy ? copy[lang].questions : [];
+  const lines = legacy ? sheet.slice(4) : [...lessonDetails[videoId][lang].slice(2), ...sheet.slice(4)];
   const offset = Object.keys(lessonDetails).indexOf(videoId);
-  return locale.slice(2).map((line,i) => {
+  return [...original,...lines.map((line,i) => {
     const [title,correct,...options] = line.split(' | ');
-    const key = (offset + i) % 3;
+    const key = legacy ? 2 : (offset + i) % 3;
     options.splice(key,0,correct);
     return [title,options,key,''];
-  });
+  })];
 }

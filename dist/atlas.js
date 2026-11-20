@@ -198,13 +198,16 @@ const topicScrollCopy = {
   en:['Scroll sideways to explore more topics','Previous topics','Next topics']
 };
 const guideLabels = {
-  ky:{steps:'Жөнөкөй кадамдар', observe:'Видеону көрүп, байкаңыз', quiz:'Тестке өтүү'},
-  ru:{steps:'Простые шаги', observe:'На что обратить внимание', quiz:'Перейти к тесту'},
-  en:{steps:'Simple steps', observe:'Follow along', quiz:'Go to quiz'}
+  ky:{steps:'Иштин жүрүшү', quiz:'Тестке өтүү'},
+  ru:{steps:'Порядок работы', quiz:'Перейти к тесту'},
+  en:{steps:'Procedure', quiz:'Go to quiz'}
 };
 
+// YouTube needs the site origin. Class codes and lesson URLs stay out of its referrer.
+const youtubeReferrerPolicy = 'strict-origin-when-cross-origin';
+
 function atlasPlayer(video,lang) {
-  return `<div class="atlas-player" id="video"><iframe src="https://www.youtube-nocookie.com/embed/${video.id}?playsinline=1&amp;hl=${lang}&amp;cc_load_policy=1&amp;cc_lang_pref=${lang}" title="${videoWords(video,lang)[0]}" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`;
+  return `<div class="atlas-player" id="video"><iframe src="https://www.youtube-nocookie.com/embed/${video.id}?playsinline=1&amp;hl=${lang}&amp;cc_load_policy=1&amp;cc_lang_pref=${lang}" title="${videoWords(video,lang)[0]}" referrerpolicy="${youtubeReferrerPolicy}" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`;
 }
 
 function atlasLibrary(lang, params, role) {
@@ -220,7 +223,7 @@ function atlasLibrary(lang, params, role) {
     ${video ? `<a class="atlas-back" href="${atlasUrl(lang,{topic:atlasTopics[topic]})}">← ${heading}</a>` : ''}
     <h1>${video ? videoWords(video,lang)[0] : heading}</h1><p>${video ? videoWords(video,lang)[1] : a.intro}</p></div>`}
     ${video ? `${trackingVideo ? watchMarkup(lang) : atlasPlayer(video,lang)}
-      ${video.id === legacyQuizVideo ? renderIndicatorProcedure() : renderVideoGuide(video,lang)}
+      ${renderVideoGuide(video,lang)}
       ${role === 'teacher' ? renderAssignmentControls(video) : `<a class="button" id="open-quiz" href="${url(true)}" ${trackingVideo ? 'hidden' : ''}>${guideLabels[lang].quiz} →</a>`}
       <div class="actions atlas-links"><a class="button outline" href="https://youtu.be/${video.id}" target="_blank" rel="noopener">YouTube ↗</a>
       <a class="button outline" href="${source}">${a.source} · Experimentium ↗</a></div>`
@@ -282,6 +285,10 @@ async function startAssignedVideo(lang, code, video, unlock) {
       return;
     }
     document.getElementById('student-class').textContent = classCopy[lang].assignment + ' · ' + assignment.class_name + ' · ' + code;
+    if (assignment.due_date) {
+      document.getElementById('student-class').textContent += ' · ' +
+        dashboardCopy[lang].today.replace('{date}', calendarDate(lang,assignment.due_date));
+    }
     if (!assignment.quiz_open) throw new Error('closed');
     const receiptKey = 'chemistry-atlas-watch-' + code;
     const previous = storedWatchReceipt(code);
@@ -297,6 +304,7 @@ async function startAssignedVideo(lang, code, video, unlock) {
     const [{token},yt] = await Promise.all([classRequest('watch-start',code,{}),youtubeAPI()]);
     const frame = document.createElement('iframe');
     frame.title = videoWords(video,lang)[0];
+    frame.referrerPolicy = youtubeReferrerPolicy;
     frame.src = 'https://www.youtube-nocookie.com/embed/' + video.id + '?' + new URLSearchParams({
       enablejsapi:'1', origin:location.origin, playsinline:'1', hl:lang, cc_load_policy:'1', cc_lang_pref:lang, rel:'0'
     });

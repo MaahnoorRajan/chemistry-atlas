@@ -1,23 +1,23 @@
 const classCopy = {
   ky: {
     dashboard:'Класстын жыйынтыктары', create:'Тестти дайындоо', className:'Класстын аталышы', assignment:'Дайындалган тест', pick:'Классты тандаңыз', refresh:'Жаңыртуу',
-    code:'Класс коду', link:'Окуучулар үчүн шилтеме', copied:'Шилтеме көчүрүлдү.', copy:'Шилтемени көчүрүү', submitted:'Тапшырды', student:'Окуучунун коду', score:'Упай',
-    missed:'Эң көп ката кеткен суроо', perfect:'Бардык жооптор туура.', empty:'Азырынча жооп жок.', join:'Класс коду менен кошулуу', idHint:'Мугалим берген кодду жазыңыз, мисалы A01.',
+    code:'Класс коду', link:'Окуучулар үчүн шилтеме', copied:'Шилтеме көчүрүлдү.', copy:'Шилтемени көчүрүү', submitted:'Тапшырды', student:'Окуучу', score:'Упай',
+    missed:'Эң көп ката кеткен суроо', perfect:'Бардык жооптор туура.', empty:'Азырынча жооп жок.', join:'Класс коду менен кошулуу',
     saved:'Жообуңуз сакталды.', duplicate:'Бул окуучунун жообу мурда сакталган.', notfound:'Мындай класс коду табылган жок.', unavailable:'Сактоо же жүктөө мүмкүн болгон жок. Кайра аракет кылыңыз.',
     invalid:'Маалыматты текшерип, кайра аракет кылыңыз.', noSets:'Жыйынтыктарды көрүү үчүн класска тест дайындаңыз.'
   },
   ru: {
     dashboard:'Результаты класса', create:'Назначить тест', className:'Название класса', assignment:'Назначенный тест', pick:'Выберите класс', refresh:'Обновить',
-    code:'Код класса', link:'Ссылка для учеников', copied:'Ссылка скопирована.', copy:'Скопировать ссылку', submitted:'Сдали', student:'Код ученика', score:'Баллы',
-    missed:'Самый трудный вопрос', perfect:'Все ответы правильные.', empty:'Ответов пока нет.', join:'Присоединиться по коду класса', idHint:'Введите выданный учителем код, например A01.',
+    code:'Код класса', link:'Ссылка для учеников', copied:'Ссылка скопирована.', copy:'Скопировать ссылку', submitted:'Сдали', student:'Ученик', score:'Баллы',
+    missed:'Самый трудный вопрос', perfect:'Все ответы правильные.', empty:'Ответов пока нет.', join:'Присоединиться по коду класса',
     saved:'Ответ сохранён.', duplicate:'Ответ этого ученика уже сохранён.', notfound:'Класс с таким кодом не найден.', unavailable:'Не удалось сохранить или загрузить данные. Попробуйте снова.',
     invalid:'Проверьте введённые данные и попробуйте снова.', noSets:'Назначьте тест классу, чтобы увидеть результаты.'
   },
   en: {
     dashboard:'Class results', create:'Assign quiz', className:'Class name', assignment:'Assigned quiz', pick:'Choose a class', refresh:'Refresh results',
-    code:'Class code', link:'Student link', copied:'Link copied.', copy:'Copy student link', submitted:'Submitted', student:'Student ID', score:'Score',
-    missed:'Most-missed question', perfect:'All answers are correct.', empty:'No submissions yet.', join:'Join with a class code', idHint:'Enter the ID your teacher gave you, such as A01.',
-    saved:'Your submission was saved.', duplicate:'This student ID has already submitted.', notfound:'That class code was not found.', unavailable:'Could not save or load the data. Try again.',
+    code:'Class code', link:'Student link', copied:'Link copied.', copy:'Copy student link', submitted:'Submitted', student:'Student', score:'Score',
+    missed:'Most-missed question', perfect:'All answers are correct.', empty:'No submissions yet.', join:'Join with a class code',
+    saved:'Your submission was saved.', duplicate:'You have already submitted this quiz.', notfound:'That class code was not found.', unavailable:'Could not save or load the data. Try again.',
     invalid:'Check the information and try again.', noSets:'Assign a quiz to see class results here.'
   }
 };
@@ -32,11 +32,14 @@ async function classRequest(endpoint, code, data) {
   return payload;
 }
 
-function classroomMarkup(c, a) {
-  return `<section id="classroom" class="card classroom"><h2>${c.dashboard}</h2>
+function classroomMarkup(c, a, dashboard) {
+  return `<section id="classroom" class="card classroom"><h2>${dashboard?.newAssignment || c.dashboard}</h2>
     <form id="create-class" class="class-fields"><label>${c.className}<input name="name" maxlength="40" placeholder="8A" required></label>
+    ${dashboard ? `<label>${dashboard.lesson}<select name="video" required>${atlasVideos.map(video => `<option value="${video.id}">${videoWords(video,locale)[0]}</option>`).join('')}</select></label>
+    <label>${dashboard.dueOptional}<input name="dueDate" type="date" min="2000-01-01"></label>` : ''}
     <button class="button" type="submit">${c.create}</button></form>
     <p id="class-status" role="status"></p>
+    ${dashboard ? `<h2 id="teacher-progress">${dashboard.progress}</h2>` : ''}
     <div id="class-controls" hidden><div class="class-fields"><label>${c.assignment}<select id="class-select"></select></label>
       <button class="button outline" type="button" id="class-refresh">${c.refresh}</button></div>
       <div class="release-row"><p class="class-code">${c.code} <strong id="class-code"></strong></p>
@@ -54,13 +57,8 @@ function classStudentMarkup(c, assigned, locale) {
     <button class="button outline" type="submit">${c.join}</button></form>`;
 }
 
-function idMarkup(c) {
-  return `<label class="student-id" for="student-id">${c.student}</label>
-    <input id="student-id" name="studentId" required pattern="[A-Za-z0-9\\-]{2,20}" maxlength="20" autocapitalize="characters" aria-describedby="id-hint">
-    <p id="id-hint" class="small">${c.idHint}</p><p id="save-status" role="status"></p>`;
-}
 
-function setupClassroom(c, locale, lesson) {
+function setupClassroom(c, locale, lesson, onChange) {
   const a = atlasCopy[locale];
   const el = id => document.getElementById(id);
   const select = el('class-select');
@@ -89,7 +87,7 @@ function setupClassroom(c, locale, lesson) {
     el('release-status').textContent = '';
     status.textContent = '';
     try {
-      const { attempts, missed, quiz_open, video_id } = await classRequest('results',code);
+      const { attempts, missed, answered, quiz_open, video_id } = await classRequest('results',code);
       if (current !== revision) return;
       const questions = questionsFor(video_id,locale);
       quizOpen = !!quiz_open;
@@ -98,16 +96,17 @@ function setupClassroom(c, locale, lesson) {
       release.disabled = false;
       el('class-count').textContent = c.submitted + ' · ' + attempts.length;
       const peak = Math.max(...missed);
-      const hardest = missed.flatMap((count,index) => count === peak ? [questions[index][0]] : []);
-      el('class-missed').textContent = !attempts.length ? c.empty : peak ? c.missed + ' · ' + hardest.join(' / ') + ' (' + peak + '/' + attempts.length + ')' : c.perfect;
+      const hardest = missed.flatMap((count,index) => count === peak ? [questions[index][0] + ' (' + count + '/' + answered[index] + ')'] : []);
+      el('class-missed').textContent = !attempts.length ? c.empty : peak ? c.missed + ' · ' + hardest.join(' / ') : c.perfect;
       const rows = attempts.map(attempt => {
         const row = document.createElement('tr');
-        row.insertCell().textContent = attempt.student_id;
-        row.insertCell().textContent = attempt.score + ' / ' + questions.length;
+        row.insertCell().textContent = attempt.student_name;
+        row.insertCell().textContent = attempt.score + ' / ' + attempt.total;
         return row;
       });
       scores.tBodies[0].replaceChildren(...rows);
       scores.hidden = !attempts.length;
+      window.dispatchEvent(new CustomEvent('assignment-selected'));
     } catch {
       if (revision === current) status.textContent = c.unavailable;
     }
@@ -117,7 +116,9 @@ function setupClassroom(c, locale, lesson) {
     try {
       const { assignments } = await classRequest('assignments');
       select.replaceChildren(...assignments.map(assignment => new Option(label(assignment), assignment.code)));
-      const preferred = assignments.find(assignment => assignment.video_id === lesson.id);
+      const requested = new URLSearchParams(location.search).get('assignment');
+      const preferred = assignments.find(assignment => assignment.code === requested) ||
+        assignments.find(assignment => assignment.video_id === lesson?.id);
       if (preferred) select.value = preferred.code;
       controls.hidden = !assignments.length;
       if (assignments.length) await refresh();
@@ -133,6 +134,7 @@ function setupClassroom(c, locale, lesson) {
     try {
       await classRequest('quiz-state',code,{open:!quizOpen});
       if (select.value === code) await refresh();
+      onChange?.();
     } catch (error) {
       if (select.value === code) {
         status.textContent = c[error.message] || c.unavailable;
@@ -149,7 +151,11 @@ function setupClassroom(c, locale, lesson) {
     event.preventDefault();
     send.disabled = true;
     try {
-      const created = await classRequest('assignments',null,{ name:new FormData(form).get('name'), videoId:lesson.id });
+      const data = new FormData(form);
+      const created = await classRequest('assignments',null,{
+        name:data.get('name'), videoId:lesson?.id || data.get('video'),
+        dueDate:data.get('dueDate') || null
+      });
       if (!select.querySelector('option[value="' + created.code + '"]')) {
         select.prepend(new Option(label(created),created.code));
       }
@@ -157,9 +163,17 @@ function setupClassroom(c, locale, lesson) {
       controls.hidden = false;
       form.reset();
       await refresh();
+      onChange?.();
     } catch (error) { status.textContent = c[error.message] || c.unavailable; }
     finally { send.disabled = false; }
   });
   send.disabled = true;
-  load().finally(() => { send.disabled = false; });
+  const ready = load().finally(() => { send.disabled = false; });
+  return async code => {
+    await ready;
+    if (![...select.options].some(option => option.value === code)) return;
+    select.value = code;
+    await refresh();
+    select.focus();
+  };
 }

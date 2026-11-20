@@ -1,0 +1,21 @@
+Deno.serve(async request => {
+ if(request.method!=='POST')return new Response(null,{status:405});
+ const base=Deno.env.get('SUPABASE_URL');
+ const key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+ const authorization=request.headers.get('Authorization')||'';
+ if(!authorization.startsWith('Bearer '))return new Response(null,{status:401});
+ const userResponse=await fetch(base+'/auth/v1/user',{headers:{apikey:key,Authorization:authorization}});
+ if(!userResponse.ok)return new Response(null,{status:401});
+ const caller=await userResponse.json();
+ if(caller.app_metadata?.chemistry_atlas_admin!==true||!caller.email_confirmed_at)return new Response(null,{status:403});
+ const data=await request.json().catch(()=>null);
+ if(!/^[a-f0-9-]{36}$/.test(data?.userId||''))return new Response(null,{status:400});
+ const endpoint=base+'/auth/v1/admin/users/'+data.userId;
+ const headers={apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'};
+ const current=await fetch(endpoint,{headers});
+ if(!current.ok)return new Response(null,{status:404});
+ const account=await current.json();
+ if(!account.email_confirmed_at||account.user_metadata?.atlas_teacher_requested!==true)return new Response(null,{status:403});
+ const updated=await fetch(endpoint,{method:'PUT',headers,body:JSON.stringify({app_metadata:{...account.app_metadata,chemistry_atlas_role:'teacher'}})});
+ return Response.json({saved:updated.ok},{status:updated.ok?200:503});
+});

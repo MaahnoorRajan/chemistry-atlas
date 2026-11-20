@@ -15,6 +15,9 @@ for (const name of ['style.css', 'content.js', 'lab-sheets.js', 'lesson-details.
   };
 }
 let page = await read('../dist/index.html');
+for (const name of ['privacy','terms']) {
+  assets['/' + name] = {type:'text/html; charset=utf-8',body:await read('../dist/' + name + '.html')};
+}
 for (const [path,asset] of Object.entries(assets)) {
   if (!path.endsWith('.js') && !path.endsWith('.css')) continue;
   const revision=createHash('sha256').update(asset.body).digest('hex').slice(0,12);
@@ -51,4 +54,3 @@ await writeFile(new URL('../dist/server/index.js', import.meta.url),
   'const page = ' + JSON.stringify(page) + ';\nconst assets = ' + JSON.stringify(assets) +
   ';\nconst quizCatalog = ' + JSON.stringify(quizCatalog) + ';\n' + worker);
 await copyFile(new URL('../.openai/hosting.json', import.meta.url), new URL('../dist/.openai/hosting.json', import.meta.url));
-

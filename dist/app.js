@@ -70,7 +70,7 @@ function renderFooter() {
       <section aria-labelledby="footer-credits"><h2 id="footer-credits">${f.credits}</h2><ul>
       ${credits.map(([name,href,description]) => `<li><a href="${href}">${name}</a><span>${description}</span></li>`).join('')}
       </ul></section></div>
-    <div class="footer-legal"><p>© 2026 ${f.copyright}</p><p>${f.rights}</p></div>
+    <div class="footer-legal"><p>© 2026 ${f.copyright}</p><p>${f.rights}</p><p><a href="/privacy">Privacy policy</a> · <a href="/terms">Terms of use</a></p></div>
     </div></footer>`;
 }
 function renderPage() {

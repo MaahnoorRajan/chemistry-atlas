@@ -59,7 +59,7 @@ async function classroom(request, env, session, url) {
         JOIN ${classroomTable} a ON t.assignment_code = a.code WHERE a.owner_id = ?
         ORDER BY t.created_at DESC, a.code DESC, t.student_id DESC LIMIT 6`).bind(user.id).all()
     ]);
-    return json({ name:cleanName(user.user_metadata?.atlas_name), assignments:assignments.results,
+    return json({ name:accountName(user), assignments:assignments.results,
       students:students.total, recent:recent.results });
   }
 
@@ -161,7 +161,7 @@ async function classroom(request, env, session, url) {
     if (!assignment.allow_late&&assignment.due_date&&Date.now()>Date.parse(assignment.due_date+'T23:59:59+06:00')) return json({error:'late'},403);
     const data = await request.json().catch(() => null);
     if (await watchAge(user.id,env,code,'finished',data?.receipt) < 0) return json({error:'watch'},403);
-    const name = cleanName(user.user_metadata?.atlas_name) || '—';
+    const name = accountName(user) || '—';
     const answers = data?.answers;
     if (!Array.isArray(answers) || answers.length !== answerKey.length ||
         !answers.every(value => Number.isInteger(value) && value >= 0 && value <= 2)) {

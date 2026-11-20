@@ -1,5 +1,6 @@
 import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
+import { createHash } from 'node:crypto';
 
 const read = file => readFile(new URL(file, import.meta.url), 'utf8');
 const assets = {};
@@ -13,7 +14,12 @@ for (const name of ['style.css', 'content.js', 'lab-sheets.js', 'lesson-details.
     body: await read('../dist/' + name)
   };
 }
-const page = await read('../dist/index.html');
+let page = await read('../dist/index.html');
+for (const [path,asset] of Object.entries(assets)) {
+  if (!path.endsWith('.js') && !path.endsWith('.css')) continue;
+  const revision=createHash('sha256').update(asset.body).digest('hex').slice(0,12);
+  page=page.replaceAll('".'+path+'"','".'+path+'?v='+revision+'"');
+}
 const durations = JSON.parse(await read('./video-durations.json'));
 const quizCatalog = runInNewContext(
   ['/content.js','/lab-sheets.js','/lesson-details.js','/atlas.js'].map(path => assets[path].body).join('\n') + `
@@ -45,3 +51,4 @@ await writeFile(new URL('../dist/server/index.js', import.meta.url),
   'const page = ' + JSON.stringify(page) + ';\nconst assets = ' + JSON.stringify(assets) +
   ';\nconst quizCatalog = ' + JSON.stringify(quizCatalog) + ';\n' + worker);
 await copyFile(new URL('../.openai/hosting.json', import.meta.url), new URL('../dist/.openai/hosting.json', import.meta.url));
+

@@ -13,7 +13,7 @@ function quizScore(videoId, answers) {
 async function enrollStudent(db, tables, user, roomCode) {
   await db.prepare(`INSERT INTO ${tables.members}(room_code,student_id,student_name) VALUES(?,?,?)
     ON CONFLICT(room_code,student_id) DO UPDATE SET student_name=excluded.student_name`)
-    .bind(roomCode,user.id,cleanName(user.user_metadata?.atlas_name)||'—').run();
+    .bind(roomCode,user.id,accountName(user)||'—').run();
 }
 
 async function learningApi(request,env,session,url) {
@@ -24,7 +24,7 @@ async function learningApi(request,env,session,url) {
     const requested=await supabase(env,'user',{method:'PUT',token:session.token,body:{data:{atlas_teacher_requested:true}}});
     if(!requested.ok)return json({error:'unavailable'},503);
     await db.prepare("INSERT INTO teacher_requests(user_id,email,display_name) VALUES(?,?,?) ON CONFLICT(user_id) DO NOTHING")
-      .bind(user.id,user.email,cleanName(user.user_metadata?.atlas_name)).run();
+      .bind(user.id,user.email,accountName(user)).run();
     return json({saved:true});
   }
   if (path === '/api/rooms' && role==='teacher') {

@@ -4,7 +4,24 @@
 
 Sites continues to use its D1 binding. Vercel uses the same Worker request handler through `api/index.js` and the PostgreSQL adapter. The private `chemistry_atlas` schema is provisioned in the existing Supabase project. Each runtime needs its own application data migration or export/import before switching existing users to Vercel.
 
-## Email delivery
+## Google sign-in
+
+The visitor sign-in screen now uses Google. Set `AUTH_MODE=google` on Sites and Vercel. The teacher and student demos remain available while the provider is configured.
+
+1. In Google Cloud, create a project named Chemistry Atlas.
+2. In Google Auth Platform, configure Branding with the app name, support email and developer email. Choose External audience. Add the owner's Google account as a test user while the app is in Testing.
+3. Configure only OpenID, email and profile scopes.
+4. Create a Web application OAuth client.
+5. Add the current website origin as an authorized JavaScript origin:
+   `https://khimiya-sabagy-kg.hushedsaffron2.chatgpt.site`
+6. Add this Google authorized redirect URI:
+   `https://gjdimdafxyobsnzuvthz.supabase.co/auth/v1/callback`
+7. Copy the Client ID and Client Secret directly into Supabase Authentication → Sign In / Providers → Google, enable the provider and save.
+8. Keep the website's own `/account/callback` URL in Supabase's redirect allowlist. Add the final Chemistry Atlas Vercel origin after deployment.
+
+The Google redirect URI above belongs to Supabase. Supabase then redirects the user to the website callback. The application uses PKCE and server-side cookies. A teacher request requires administrator approval before teacher access is granted. Google sign-in is awaiting the owner's OAuth configuration, so only simulated OAuth tests have run so far.
+
+## Optional email delivery
 
 Custom SMTP is still required. In Supabase Authentication → Email → SMTP, enter the provider's SMTP host, port, username, password, verified sender address and sender name. Keep email confirmation enabled. Disable link tracking in the provider.
 
@@ -17,6 +34,7 @@ In Authentication → URL Configuration, set the final site origin and add the e
 - `SITE_AUTH_ORIGIN` — final HTTPS Vercel or custom-domain origin.
 - `DEMO_SESSION_KEY` — a random server-side secret for demo sessions and watch receipts.
 - `AUTH_EMAIL_READY` — `false` until email setup is verified.
+- `AUTH_MODE` — `google` for this release.
 
 The lockfile pins the database dependency. Use Node.js 24 and the committed Vercel configuration. Run `npm ci` and `npm run build`. The PostgreSQL schema is tracked in `postgres/schema.sql` for a new database. The current Supabase project's schema is already provisioned, so do not rerun that bootstrap against it.
 

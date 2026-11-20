@@ -10,7 +10,7 @@ export default {
       try {
         if (session.unavailable) return json({ error:'unavailable' }, 503);
         const response = url.pathname === '/api/profile' && request.method === 'GET' ?
-          (session.role ? json({ name: cleanName(session.user.user_metadata?.atlas_name), email: session.user.email, role: session.role, admin:!session.demo&&session.user.app_metadata?.chemistry_atlas_admin===true }) : json({ error:'signin' }, 401)) :
+          (session.role ? json({ name: accountName(session.user), email: session.user.email, role: session.role, admin:!session.demo&&session.user.app_metadata?.chemistry_atlas_admin===true }) : json({ error:'signin' }, 401)) :
           await classroom(request, env, session, url);
         return withCookies(response, session.cookies);
       } catch { return withCookies(json({ error:'unavailable' }, 503), session.cookies); }

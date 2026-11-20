@@ -148,6 +148,9 @@ async function accountCallback(request, env, url) {
   const code = url.searchParams.get('code');
   const info = flow?.info ?? accountContext(url);
   const cleared = clearCookies(flowCookie);
+  if (flow?.kind === 'google' && url.searchParams.has('error')) {
+    return redirect(accountLocation(info,'login','googleCancelled'),cleared);
+  }
   if (!code || !flow?.verifier) return redirect(accountLocation(info, 'login', 'expired'), cleared);
   const response = await supabase(env, 'token?grant_type=pkce', {
     method: 'POST', body: { auth_code: code, code_verifier: flow.verifier }
@@ -159,6 +162,26 @@ async function accountCallback(request, env, url) {
     return redirect(accountLocation(info, 'reset'), [
       ...cleared, cookie(resetCookie, response.data.access_token, 10 * 60)
     ]);
+  }
+  if (flow.kind === 'google') {
+    const user=response.data.user;
+    if(info.role==='teacher' && accountRole(user)==='student') {
+      const updated=await supabase(env,'user',{method:'PUT',token:response.data.access_token,
+        body:{data:{atlas_teacher_requested:true}}});
+      if(!updated.ok) {
+        await supabase(env,'logout?scope=local',{method:'POST',token:response.data.access_token});
+        return redirect(accountLocation(info,'login','unavailable'),cleared);
+      }
+      await trackTeacherRequest(updated.data,env);
+      return redirect(route(info.lang,{...info.context,auth:'profile',as:'student',status:'teacherPending'}),
+        [...cleared,...sessionCookies(response.data),...clearCookies(demoCookie)]);
+    }
+    if(!info.context.video && !info.context.quiz) {
+      delete info.context.dashboard;
+      delete info.context.student;
+      info.context[accountRole(user)==='teacher'?'dashboard':'student']='1';
+    }
+    return redirect(accountLocation(info),[...cleared,...sessionCookies(response.data),...clearCookies(demoCookie)]);
   }
   await trackTeacherRequest(response.data.user,env);
   await supabase(env, 'logout?scope=local', { method: 'POST', token: response.data.access_token });
@@ -172,10 +195,14 @@ function cleanName(value) {
   return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, 60) : '';
 }
 
+function accountName(user) {
+  return cleanName(user?.user_metadata?.atlas_name || user?.user_metadata?.full_name || user?.user_metadata?.name);
+}
+
 async function trackTeacherRequest(user,env) {
   if (!env.DB||!user?.email_confirmed_at||!user.user_metadata?.atlas_teacher_requested||accountRole(user)==='teacher') return;
   await env.DB.prepare('INSERT INTO teacher_requests(user_id,email,display_name) VALUES(?,?,?) ON CONFLICT(user_id) DO NOTHING')
-    .bind(user.id,user.email,cleanName(user.user_metadata?.atlas_name)).run();
+    .bind(user.id,user.email,accountName(user)).run();
 }
 
 async function accountAction(request, env, url) {
@@ -184,6 +211,18 @@ async function accountAction(request, env, url) {
   }
   const action = url.pathname.slice('/account/'.length);
   const info = accountContext(url);
+  if(action==='google') {
+    const settings=await supabase(env,'settings');
+    if(!settings.ok) return redirect(accountLocation(info,'login','unavailable'));
+    if(!settings.data.external?.google) return redirect(accountLocation(info,'login','googleSetup'));
+    const verifier=base64url(crypto.getRandomValues(new Uint8Array(32)));
+    const challenge=base64url(new Uint8Array(await crypto.subtle.digest('SHA-256',encode.encode(verifier))));
+    const callback=new URL('/account/callback',env.SITE_AUTH_ORIGIN||url.origin);
+    const destination=new URL('/auth/v1/authorize',env.SUPABASE_URL);
+    destination.search=new URLSearchParams({provider:'google',redirect_to:callback.href,code_challenge:challenge,
+      code_challenge_method:'s256',scopes:'openid email profile',prompt:'select_account'}).toString();
+    return redirect(destination.href,[cookie(flowCookie,storeFlow(verifier,info,'google'),60*60)]);
+  }
   if (action === 'logout') {
     if (await demoSession(request,env)) return redirect(route(info.lang,{auth:'login'}),clearCookies(demoCookie));
     const session = await accountSession(request, env);
@@ -191,6 +230,7 @@ async function accountAction(request, env, url) {
     return redirect(route(info.lang), clearCookies(accessCookie, refreshCookie, resetCookie, flowCookie, 'chemistry_demo_role'));
   }
   if (!['login', 'register', 'forgot', 'reset', 'profile'].includes(action)) return new Response(null, { status: 404 });
+  if(env.AUTH_MODE==='google' && action!=='profile') return redirect(accountLocation(info,'login'));
   if (['register','forgot'].includes(action)&&env.AUTH_EMAIL_READY==='false') {
     return redirect(accountLocation(info,action,'emailSetup'));
   }

@@ -482,6 +482,8 @@ fieldset{border-radius:5px}
 .account-links{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;width:100%;margin-top:18px}
 .account-links form{width:auto;margin:0 0 0 auto}
 .account-links .logout button[type=submit]{margin:0}
+.account-form .google-signin{width:100%;justify-content:center;background:#fff;color:#17364b;border:1px solid #b9c9d4;border-radius:8px}
+.account-form .google-signin:hover{background:#eff6fb}
 .try-demo{border-top:1px solid #dae5ed;margin-top:24px;padding-top:18px;width:100%;text-align:center}
 .try-demo h2{font-size:.95rem;color:#52687a;margin:0 0 12px;font-weight:500}
 .demo-choices{display:flex;gap:10px;flex-wrap:wrap}

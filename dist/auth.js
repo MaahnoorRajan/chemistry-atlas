@@ -79,6 +79,21 @@ const demoCopy = {
   ky:{try:'Демо аккаунтту сынап көрүңүз',student:'Окуучу демосу',teacher:'Мугалим демосу',notice:'Демо · Үлгү маалыматтар · Мөөнөтү 3 саат',exit:'Демодон чыгуу',switch:'Ролду алмаштыруу',unavailable:'Демону ачуу мүмкүн болгон жок. Кайра аракет кылыңыз.'}
 };
 
+const googleCopy = {
+  en:{continue:'Continue with Google',intro:'Use your Google account to save assignments and classroom progress.',
+    setup:'Google sign-in is being configured. You can explore either demo while setup is completed.',
+    cancelled:'Google sign-in was cancelled or could not be completed. Please try again.',
+    profile:'Your account is managed through Google.'},
+  ru:{continue:'Продолжить с Google',intro:'Используйте аккаунт Google, чтобы сохранять задания и результаты.',
+    setup:'Вход через Google настраивается. Пока можно попробовать демо.',
+    cancelled:'Вход через Google отменён или не завершён. Попробуйте снова.',
+    profile:'Вход в ваш аккаунт осуществляется через Google.'},
+  ky:{continue:'Google аркылуу улантуу',intro:'Тапшырмаларды жана жыйынтыктарды сактоо үчүн Google аккаунтун колдонуңуз.',
+    setup:'Google аркылуу кирүү жөндөлүүдө. Азырынча демолорду сынап көрүңүз.',
+    cancelled:'Google аркылуу кирүү токтотулду же аяктаган жок. Кайра аракет кылыңыз.',
+    profile:'Аккаунтуңузга Google аркылуу киресиз.'}
+};
+
 function demoButtons(lang) {
   const d = demoCopy[lang];
   return `<div class="demo-choices">${['student','teacher'].map(kind =>
@@ -110,7 +125,8 @@ function renderAccess(locale, form) {
   const preferred = params.get('as') === 'teacher' || !params.has('as') && params.has('dashboard') || form === 'profile' && role === 'teacher' ? 'teacher' : 'student';
   const link = (mode, nextRole = preferred) => accountHref('/', locale, mode, nextRole);
   const statusKey = params.get('status');
-  const message = statusKey === 'emailSetup' ? learningCopy[locale].emailSetup : statusKey === 'demoUnavailable' ? demoCopy[locale].unavailable :
+  const message = statusKey === 'googleSetup' ? googleCopy[locale].setup : statusKey === 'googleCancelled' ? googleCopy[locale].cancelled :
+    statusKey === 'emailSetup' ? learningCopy[locale].emailSetup : statusKey === 'demoUnavailable' ? demoCopy[locale].unavailable :
     Object.hasOwn(labels.messages, statusKey) ? labels.messages[statusKey] : '';
   const hasPassword = ['login', 'register', 'reset'].includes(form);
   const newPassword = ['register', 'reset'].includes(form);
@@ -118,6 +134,19 @@ function renderAccess(locale, form) {
   const showName = ['register', 'profile'].includes(form);
   const actionLabel = { forgot:labels.send, profile:labels.save }[form] || labels[form];
   const heading = form === 'login' ? labels.title : labels[form];
+  if(form!=='profile') {
+    const g=googleCopy[locale];
+    return `<section class="access account-page" id="access">
+      <div class="access-head">${icon}<h1>${labels.title}</h1><p>${g.intro}</p></div>
+      <nav class="account-roles" aria-label="${labels.intro}">${['student','teacher'].map(kind=>
+        `<a href="${link('login',kind)}" ${kind===preferred?'aria-current="page"':''}><strong>${labels[kind]}</strong><span>${labels[kind+'Help']}</span></a>`).join('')}</nav>
+      <div class="access-card account-form">
+        ${message?`<p class="account-message" role="status">${message}</p>`:''}
+        ${preferred==='teacher'?`<p class="small">${labels.teacherNote}</p>`:''}
+        <form method="post" action="${accountHref('/account/google',locale,'',preferred)}"><button type="submit" class="button google-signin">${g.continue}</button></form>
+        <section class="try-demo"><h2>${demoCopy[locale].try}</h2>${demoButtons(locale)}</section>
+      </div></section>`;
+  }
   if (form === 'profile' && document.body.dataset.demo) return `<section class="access account-page"><h1>${labels.profile}</h1>
     <p>${demoCopy[locale].notice}</p>${demoButtons(locale)}</section>`;
   return `<section class="access account-page" id="access">
@@ -140,7 +169,7 @@ function renderAccess(locale, form) {
       </form>
       ${['login','register','profile'].includes(form) ? `<section class="try-demo"><h2>${demoCopy[locale].try}</h2>${demoButtons(locale)}</section>` : ''}
       <div class="account-links">${form === 'login' ? `<a href="${link('register')}">${labels.register}</a><a href="${link('forgot')}">${labels.forgot}</a>` :
-        form === 'profile' ? `<a href="${link('forgot')}">${labels.reset}</a>
+        form === 'profile' ? `<span class="small">${googleCopy[locale].profile}</span>
         <form class="logout" method="post" action="/account/logout?lang=${locale}"><button class="button outline" type="submit">${labels.logout}</button></form>` :
         `<a href="${link('login')}">${labels.back}</a>`}</div>
       ${form==='profile' && role==='student' ? `<button class="button outline" id="request-teacher" type="button">${learningCopy[locale].requestTeacher}</button><p id="teacher-request-status" role="status"></p>` : ''}

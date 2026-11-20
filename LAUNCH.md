@@ -19,7 +19,7 @@ The visitor sign-in screen now uses Google. Set `AUTH_MODE=google` on Sites and 
 7. Copy the Client ID and Client Secret directly into Supabase Authentication → Sign In / Providers → Google, enable the provider and save.
 8. Keep the website's own `/account/callback` URL in Supabase's redirect allowlist. Add the final Chemistry Atlas Vercel origin after deployment.
 
-The Google redirect URI above belongs to Supabase. Supabase then redirects the user to the website callback. The application uses PKCE and server-side cookies. A teacher request requires administrator approval before teacher access is granted. Google sign-in is awaiting the owner's OAuth configuration, so only simulated OAuth tests have run so far.
+The Google redirect URI above belongs to Supabase. Supabase then redirects the user to the website callback. The application uses PKCE and server-side cookies. A teacher request requires administrator approval before teacher access is granted. Google sign-in is enabled in Supabase. The Google Cloud project is `chemistry-atlas` and the Web OAuth client is named Chemistry Atlas Web. Credentials are stored in Supabase provider settings. On November 20, 2026, the owner completed live Google sign-in, session persistence after refresh, profile save, logout, and returning-user login on the published site. The Google app remains External / Testing with the owner added as a test user; public Google access still needs production readiness and publishing in Google Auth Platform. Localhost is an authorized Google JavaScript origin, but its exact `/account/callback` URL must also be allowlisted in Supabase before local OAuth testing.
 
 ## Optional email delivery
 

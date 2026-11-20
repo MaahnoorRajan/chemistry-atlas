@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "node worker/build.mjs && node worker/dev.mjs",
     "build": "node worker/build.mjs",
     "check": "node --check api/index.js"
   },
@@ -11,6 +12,6 @@
     "postgres": "4.1.1"
   },
   "engines": {
-    "node": ">=22"
+    "node": "24.x"
   }
 }
